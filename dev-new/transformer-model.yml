@@ -32,15 +32,16 @@ exponential-smoothing: 0.0001
 disp-freq: 1000
 disp-first: 10
 early-stopping: 10
-save-freq: 5ku
+save-freq: 2.5ku
 
 # Validation set options
 keep-best: true
 beam-size: 8
 normalize: 1
-valid-freq: 5ku
+valid-freq: 2.5ku
 valid-metrics:
   - ce-mean-words
   - bleu-detok
   - perplexity
+  - translation
 valid-mini-batch: 16

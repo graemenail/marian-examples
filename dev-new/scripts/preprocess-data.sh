@@ -14,11 +14,11 @@ fi
 
 
 for lang in $SRC $TRG; do
-  # Remove non-printing characters and normalize punctuation
+  # Remove non-printing characters
   cat corpus.$lang \
     | perl $MOSES_SCRIPTS/tokenizer/remove-non-printing-char.perl \
-    | perl $MOSES_SCRIPTS/tokenizer/normalize-punctuation.perl -l $lang \
     > .corpus.norm.$lang
+    # | perl $MOSES_SCRIPTS/tokenizer/normalize-punctuation.perl -l $lang \  # could optionally norm quotes
 done
 
 # Contrain length between 1 100

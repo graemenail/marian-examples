@@ -34,7 +34,7 @@ echo "Download data and prepare corpus"
 # Train
 $MARIAN/marian -c transformer-model.yml \
   ${compute} --workspace 9000 \
-  --shuffle none --no-restore-corpus --after 5ku \
+  --shuffle none --no-restore-corpus --after 1e \
   --seed 1234 \
   --model model/model.npz \
   --train-sets data/corpus.clean.{$SRC,$TRG} \
@@ -42,7 +42,6 @@ $MARIAN/marian -c transformer-model.yml \
   --dim-vocabs 32000 32000 \
   --valid-sets data/valid.{$SRC,$TRG} \
   --log model/train.log --valid-log model/valid.log
-  --valid-translation-output model/validation-output-after-{U}-updates-{T}-tokens.txt
 
 # Decoding
 SB_OPTS="--metrics bleu chrf -b -w 3 -f text"  # options for sacrebleu
@@ -56,6 +55,8 @@ cat data/test.$SRC \
       --alignment soft \
   | tee evaluation/testset_output.txt \
   | sacrebleu data/test.$TRG ${SB_OPTS}
+  # Also do comet-score
+  ./scripts/comet-score.sh evaluation/testset_output.txt
 
 # for test in wmt{16,17,18,19,20}; do
 #   break
