@@ -1,0 +1,13 @@
+.venv
+*.log
+
+# Data
+data/corpus.*
+data/*.en
+data/*.de
+data/*tsv
+data/*.gz
+
+# Model
+model
+evaluation
