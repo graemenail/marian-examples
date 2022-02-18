@@ -119,7 +119,7 @@ keep-best: true
 valid-freq: 2ku
 valid-metrics:
   - ce-mean-words
-  - bleu-detok
+  - bleu
   - perplexity
 ```
 

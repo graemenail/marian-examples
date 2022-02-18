@@ -41,6 +41,6 @@ normalize: 1
 valid-freq: 2ku
 valid-metrics:
   - ce-mean-words
-  - bleu-detok
+  - bleu
   - perplexity
 valid-mini-batch: 16
