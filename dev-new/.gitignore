@@ -2,11 +2,13 @@
 *.log
 
 # Data
-data/corpus.*
-data/*.en
 data/*.de
-data/*tsv
+data/*.en
 data/*.gz
+data/*.tgz
+data/*tsv
+data/commoncrawl*
+data/corpus.*
 
 # Model
 model
