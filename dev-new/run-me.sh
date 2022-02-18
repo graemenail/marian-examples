@@ -10,7 +10,11 @@ fi
 SRC="en"
 TRG="de"
 
-compute="-d 0 1 2 3"
+# Set which GPUs to use for compute
+compute="-d 0"
+if [ $# -ne 0 ]; then
+  compute="-d $@"
+fi
 
 # Setup
 mkdir -p data model evaluation
@@ -52,7 +56,6 @@ cat data/test.$SRC \
       ${compute} \
       --log evaluation/testset_decoding.log \
       --quiet --quiet-translation \
-      --alignment soft \
   | tee evaluation/testset_output.txt \
   | sacrebleu data/test.$TRG ${SB_OPTS}
   # Also do comet-score
