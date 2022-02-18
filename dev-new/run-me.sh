@@ -20,7 +20,6 @@ fi
 mkdir -p data model evaluation
 
 # Get Data
-echo "Download data and prepare corpus"
 ./scripts/download-files.sh
 
 # Preprocessing
@@ -38,7 +37,6 @@ echo "Download data and prepare corpus"
 # Train
 $MARIAN/marian -c transformer-model.yml \
   ${compute} --workspace 9000 \
-  --shuffle none --no-restore-corpus --after 1e \
   --seed 1234 \
   --model model/model.npz \
   --train-sets data/corpus.clean.{$SRC,$TRG} \
@@ -52,14 +50,15 @@ SB_OPTS="--metrics bleu chrf -b -w 3 -f text"  # options for sacrebleu
 mkdir -p evaluation
 echo "Evaluating test set"
 cat data/test.$SRC \
-  | $MARIAN/marian-decoder -c model/model.npz.decoder.yml \
+  | $MARIAN/marian-decoder \
+      -c model/model.npz.decoder.yml \
       ${compute} \
+      --beam-size 12 --normalize 1 \
       --log evaluation/testset_decoding.log \
-      --quiet --quiet-translation \
   | tee evaluation/testset_output.txt \
   | sacrebleu data/test.$TRG ${SB_OPTS}
-  # Also do comet-score
-  ./scripts/comet-score.sh evaluation/testset_output.txt
+  # Also do comet-score?
+  # ./scripts/comet-score.sh evaluation/testset_output.txt
 
 # for test in wmt{16,17,18,19,20}; do
 #   break
