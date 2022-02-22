@@ -293,7 +293,7 @@ The flag `-d` sets the devices to be ran on, which you'll have to update for
 your setup. Additionally `-w`, the workspace, depends on how much memory your
 GPUs have. The example was tested on a pair of RTX2080s with 11GB using a
 workspace of 9000 MiB. You should reduce this if you have less available memory.
-For reproducibility, the seed is set `1111`.
+For reproducibility, the seed is set to `1111`.
 
 The models will be stored at `model/model.npz`. The training and validation sets
 are specified, as well as the vocabular files and their dimension. Logs for the
@@ -320,12 +320,26 @@ Test set
 ```shell
 cat data/test.en \
   | $MARIAN/marian-decoder \
-      -c model/model.npz.best-bleu-detok.npz.decoder.yml \
+      -c model/model.npz.best-bleu.npz.decoder.yml \
       -d 0 1 2 3 \
       --beam-size 12 --normalize 1 \
   | tee evaluation/testset_output.txt \
   | sacrebleu data/test.de --metrics bleu chrf -b -w 3 -f text
 ```
+
+### Results
+
+The results from decoding with best-bleu model are:
+
+| Test   | BLEU   | chrF2  | Comet  |
+|--------|--------|--------|--------|
+| WMT20  | 24.573 | 52.368 | 0.1795 |
+| WMT19^ | 37.185 | 62.628 | 0.3312 |
+| WMT18  | 40.140 | 65.281 | 0.5363 |
+| WMT17  | 26.832 | 56.096 | 0.4061 |
+| WMT16  | 33.245 | 60.534 | 0.4552 |
+
+**^** this was the validation set!
 
 <!-- Links -->
 [sacrebleu]: https://github.com/mjpost/sacrebleu
