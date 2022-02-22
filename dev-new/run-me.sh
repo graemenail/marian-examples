@@ -58,9 +58,11 @@ cat data/test.$SRC \
       --log evaluation/testset_decoding.log \
   | tee evaluation/testset_output.txt \
   | sacrebleu data/test.$TRG ${SB_OPTS}
-  # Also do comet-score?
+
+  # Run comet-score
   ./scripts/comet-score.sh evaluation/testset_output.txt
 
+# Run comparison of WMT tests
 for test in wmt{16,17,18,19,20}; do
   echo "Evaluating ${test} test set"
   sacrebleu -t $test -l $SRC-$TRG --echo src \
