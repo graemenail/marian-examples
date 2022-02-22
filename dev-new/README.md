@@ -187,16 +187,20 @@ for lang in en de; do
     > .corpus.norm.$lang
 done
 ```
-This modifies the content separately for each language, but **does not** adjust the ordering. The parallel sentences pairs are associated by line, so it is crucial that any pre-processing preserves that.
+This modifies the content separately for each language, but **does not** adjust
+the ordering. The parallel sentences pairs are associated by line, so it is
+crucial that any pre-processing preserves that.
 
 Then we constrain the sentences to be between 1 and 100 words with
 ```shell
 # Contrain length between 1 100
 perl $MOSES_SCRIPTS/training/clean-corpus-n.perl .corpus.norm en de .corpus.trim 1 100
 ```
-This removes sentence pairs where either one does not meet the length requirements.
+This removes sentence pairs where either one does not meet the length
+requirements.
 
-To remove any duplicates we build a TSV file, sort it and retain only unique lines.
+To remove any duplicates we build a TSV file, sort it and retain only unique
+lines.
 ```shell
 # Deduplicate
 paste <(cat .corpus.trim.en) <(cat .corpus.trim.de) \
@@ -204,20 +208,28 @@ paste <(cat .corpus.trim.en) <(cat .corpus.trim.de) \
   > .corpus.uniq.ende.tsv
 ```
 
-Then clean corpus is obtained by separating our TSV file back to parallel text files.
+Then clean corpus is obtained by separating our TSV file back to parallel text
+files.
 ```shell
 cat .corpus.uniq.ende.tsv | cut -f 1 > corpus.clean.en
 cat .corpus.uniq.ende.tsv | cut -f 2 > corpus.clean.de
 ```
 
-## Training
-To train a transformer model, we make use of Marian's presets. The `--task transformer-base` preset gives a good baseline of hyperparameters for a transformer model.
+The cleaned corpus has 4,552,319 parallel sentences, having discarded around
+1.6% the total sentences.
 
-We'll put our configuration inside a YAML file `transformer-model.yml`. We can output the configuration for this preset using the `--dump-config expand` options:
+## Training
+To train a transformer model, we make use of Marian's presets. The `--task
+transformer-base` preset gives a good baseline of hyperparameters for a
+transformer model.
+
+We'll put our configuration inside a YAML file `transformer-model.yml`. We can
+output the configuration for this preset using the `--dump-config expand`
+options:
 ```shell
-marian --task transformer-base --dump-config expand > transformer-model.yml
+$MARIAN/marian --task transformer-base --dump-config expand > transformer-model.yml
 ```
-We have shortened `../../build/marian` to `marian` for brevity.
+We have shortened `../../build/marian` to `$MARIAN/marian` for brevity.
 
 You can inspect this file to see exactly which options have been set.
 
@@ -228,12 +240,14 @@ disp-first: 10
 save-freq: 2ku
 ```
 
-We also add line that will halt training after 10 updates without an improvement for on the validation set.
+We also add line that will halt training after 10 updates without an improvement
+for on the validation set.
 ```
 early-stopping: 10
 ```
 
-We will also validate with additional metrics, keep the best model per metric and validate more often. This is achieved via:
+We will also validate with additional metrics, keep the best model per metric
+and validate more often. This is achieved via:
 ```
 keep-best: true
 valid-freq: 2ku
@@ -245,7 +259,8 @@ valid-metrics:
 Note that early-stopping criteria applies to `ce-mean-words`.
 
 ### SentencePiece (Optional)
-
+To generate a SentencePiece vocabulary model you can run the `spm_train` command
+built alongside Marian. An example invocation would look something like:
 ```shell
  $MARIAN/spm_train \
   --accept_language en,de \
@@ -254,13 +269,19 @@ Note that early-stopping criteria applies to `ce-mean-words`.
   --vocab_size 32000
 mv model/vocab.ende.{model,spm}
 ```
-In the absence of a vocabulary file, Marian will build one.
+Where as a last step, we rename `.model` to `.spm` (SentencePiece Model) so that
+Marian recognises it as from SentencePiece. This step is listed as optional as
+in the absence of a vocabulary file, Marian will build one.
+
+This produces a combined vocabulary of 32000 tokens.
 
 ### Training Command
+To begin training we call the `marian` command with the following arguments:
 ```shell
 $MARIAN/marian -c transformer-model.yml \
   -d 0 1 2 3 --workspace 9000 \
-  --seed 1234 \
+  --seed 1111 \
+  --after 10e \
   --model model/model.npz \
   --train-sets data/corpus.clean.{en,de} \
   --vocabs model/vocab.ende.spm model/vocab.ende.spm \
@@ -268,7 +289,31 @@ $MARIAN/marian -c transformer-model.yml \
   --valid-sets data/valid.{en,de} \
   --log model/train.log --valid-log model/valid.log
 ```
+The flag `-d` sets the devices to be ran on, which you'll have to update for
+your setup. Additionally `-w`, the workspace, depends on how much memory your
+GPUs have. The example was tested on a pair of RTX2080s with 11GB using a
+workspace of 9000 MiB. You should reduce this if you have less available memory.
+For reproducibility, the seed is set `1111`.
 
+The models will be stored at `model/model.npz`. The training and validation sets
+are specified, as well as the vocabular files and their dimension. Logs for the
+training and validation output are also retained. Finally, for this example we
+only train for a maximum of 10 epochs.
+
+The `save-freq` we specified of 2000, will result in the model state being saved
+at regular intervals of 2000 updates:
+  - `model/model.iter2000.npz`
+  - `model/model.iter4000.npz`
+  - ...
+
+The current model is always `model/model.npz`. Additionally, the `keep-best`
+option produces an additional model file for every validator:
+  - `model/model.npz.best-bleu.npz`
+  - `model/model.npz.best-ce-mean-words.npz`
+  - `model/model.npz.best-perplexity.npz`
+
+The training progress is tracked in `model/model.npz.progress.yml` with the full
+model configuration at `model/model.npz.yml`.
 
 ## Translation
 Test set
