@@ -52,24 +52,25 @@ mkdir -p evaluation
 echo "Evaluating test set"
 cat data/test.$SRC \
   | $MARIAN/marian-decoder \
-      -c model/model.npz.decoder.yml \
+      -c model/model.npz.best-bleu.npz.decoder.yml \
       ${compute} \
-      --beam-size 12 --normalize 1 \
       --log evaluation/testset_decoding.log \
   | tee evaluation/testset_output.txt \
   | sacrebleu data/test.$TRG ${SB_OPTS}
 
   # Run comet-score
-  ./scripts/comet-score.sh evaluation/testset_output.txt
+  ./scripts/comet-score.sh evaluation/testset_output.txt data/test.$SRC data/test.$TRG
 
 # Run comparison of WMT tests
 for test in wmt{16,17,18,19,20}; do
   echo "Evaluating ${test} test set"
   sacrebleu -t $test -l $SRC-$TRG --echo src \
-  | $MARIAN/marian-decoder -c model/model.npz.decoder.yml \
+  | $MARIAN/marian-decoder \
+      -c model/model.npz.best-bleu.npz.decoder.yml \
       ${compute} \
       --log evaluation/${test}_decoding.log \
       --quiet --quiet-translation \
   | tee evaluation/${test}_output.txt \
   | sacrebleu -t $test -l $SRC-$TRG ${SB_OPTS}
+  ./scripts/comet-score.sh evaluation/${test}_output.txt <(sacrebleu -t $test -l $SRC-$TRG --echo src) <(sacrebleu -t $test -l $SRC-$TRG --echo ref)
 done
