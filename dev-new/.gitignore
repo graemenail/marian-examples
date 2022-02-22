@@ -11,5 +11,5 @@ data/commoncrawl*
 data/corpus.*
 
 # Model
-model
+model*/
 evaluation
