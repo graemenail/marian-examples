@@ -37,7 +37,8 @@ mkdir -p data model evaluation
 # Train
 $MARIAN/marian -c transformer-model.yml \
   ${compute} --workspace 9000 \
-  --seed 1234 \
+  --seed 1111 \
+  --after 10e \
   --model model/model.npz \
   --train-sets data/corpus.clean.{$SRC,$TRG} \
   --vocabs model/vocab.$SRC$TRG.spm model/vocab.$SRC$TRG.spm \
@@ -58,17 +59,15 @@ cat data/test.$SRC \
   | tee evaluation/testset_output.txt \
   | sacrebleu data/test.$TRG ${SB_OPTS}
   # Also do comet-score?
-  # ./scripts/comet-score.sh evaluation/testset_output.txt
+  ./scripts/comet-score.sh evaluation/testset_output.txt
 
-# for test in wmt{16,17,18,19,20}; do
-#   break
-#   echo "Evaluating ${test} test set"
-#   sacrebleu -t $test -l $SRC-$TRG --echo src \
-#   | $MARIAN/marian-decoder -c model/model.npz.decoder.yml \
-#       ${compute} \
-#       --log evaluation/${test}_decoding.log \
-#       --quiet --quiet-translation \
-#   | tee evaluation/${test}_output.txt \
-#   | sacrebleu -t $test -l $SRC-$TRG ${SB_OPTS}
-
-# done
+for test in wmt{16,17,18,19,20}; do
+  echo "Evaluating ${test} test set"
+  sacrebleu -t $test -l $SRC-$TRG --echo src \
+  | $MARIAN/marian-decoder -c model/model.npz.decoder.yml \
+      ${compute} \
+      --log evaluation/${test}_decoding.log \
+      --quiet --quiet-translation \
+  | tee evaluation/${test}_output.txt \
+  | sacrebleu -t $test -l $SRC-$TRG ${SB_OPTS}
+done
