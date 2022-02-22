@@ -276,7 +276,7 @@ in the absence of a vocabulary file, Marian will build one.
 This produces a combined vocabulary of 32000 tokens.
 
 ### Training Command
-To begin training we call the `marian` command with the following arguments:
+To begin training, we call the `marian` command with the following arguments:
 ```shell
 $MARIAN/marian -c transformer-model.yml \
   -d 0 1 2 3 --workspace 9000 \
@@ -291,9 +291,10 @@ $MARIAN/marian -c transformer-model.yml \
 ```
 The flag `-d` sets the devices to be ran on, which you'll have to update for
 your setup. Additionally `-w`, the workspace, depends on how much memory your
-GPUs have. The example was tested on a pair of RTX2080s with 11GB using a
+GPUs have. The example was tested on a pair of NVIDIA RTX 2080 with 11GB using a
 workspace of 9000 MiB. You should reduce this if you have less available memory.
-For reproducibility, the seed is set to `1111`.
+For reproducibility, the seed is set to `1111`. As a reference, this took around
+8 hours.
 
 The models will be stored at `model/model.npz`. The training and validation sets
 are specified, as well as the vocabular files and their dimension. Logs for the
@@ -313,23 +314,50 @@ option produces an additional model file for every validator:
   - `model/model.npz.best-perplexity.npz`
 
 The training progress is tracked in `model/model.npz.progress.yml` with the full
-model configuration at `model/model.npz.yml`.
+model configuration at `model/model.npz.yml`. In addition, Marian automatically
+generates a decoding config for each of these models:
+  - `model/model.npz.decoder.yml`
+  - `model/model.npz.best-*.npz.decoder.yml`
+
+These conveniently refer to the model and vocabulary files. They also include a
+default setting for beam-search and normalization, which can be overwritten by
+the command-line interface.
 
 ## Translation
-Test set
+To translate we use the `marian-decoder` command:
 ```shell
 cat data/test.en \
   | $MARIAN/marian-decoder \
       -c model/model.npz.best-bleu.npz.decoder.yml \
       -d 0 1 2 3 \
-      --beam-size 12 --normalize 1 \
   | tee evaluation/testset_output.txt \
   | sacrebleu data/test.de --metrics bleu chrf -b -w 3 -f text
 ```
+where we're using the model that produced the best BLEU score on the validation
+set. This snippet passes the source text to Marian over a pipe to `stdin`, and
+is output over `stdout`. We're capturing this output to file with `tee`, and
+passing the output into sacreBLEU for evaluation. We provide sacreBLEU our
+reference text, and ask it to compute both BLEU and chrF. The remaining
+sacreBLEU options return us only the score with 3 decimal places of precision in
+text format.
+
+You can experiment changing the `--beam-size` and `--normalization` to see how
+it changes the scores
+
+
+Additionally, if you want to compute the Comet score, there's a helper script:
+```
+./scripts/comet-score.sh hyp.txt src.txt ref.txt
+```
+This returns the Comet score for `hyp.txt`, the translation output, based on
+`src.txt` the source input, and `ref.txt` the reference translation.
 
 ### Results
+Here we tabulate the scores for BLEU, chrF2 and Comet for our model. For each of
+the metrics, a larger score is better. You should achieve similar results with
+your own run!
 
-The results from decoding with best-bleu model are:
+These are the results from decoding with best-BLEU model:
 
 | Test   | BLEU   | chrF2  | Comet  |
 |--------|--------|--------|--------|
@@ -339,7 +367,15 @@ The results from decoding with best-bleu model are:
 | WMT17  | 26.832 | 56.096 | 0.4061 |
 | WMT16  | 33.245 | 60.534 | 0.4552 |
 
-**^** this was the validation set!
+**^** Note that WMT19 was used as the validation set!
+
+## Going Further
+If you want to improve on these results, you can continue training for longer,
+or incorporating other datasets from the WMT21 task. Take a look at the other
+examples and think about implementing some data augmentation through
+back-translation.
+
+Good luck!
 
 <!-- Links -->
 [sacrebleu]: https://github.com/mjpost/sacrebleu
